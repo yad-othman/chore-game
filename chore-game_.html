@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🏠 Family Chore Game</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --Rozh: #FF6B6B;
+    --Barzan: #4ECDC4;
+    --gold: #FFD93D;
+    --bg: #080E1A;
+    --card: #111827;
+    --card2: #1A2436;
+    --card3: #222f45;
+    --text: #EFF6FF;
+    --muted: #64748B;
+    --muted2: #94A3B8;
+    --green: #4ADE80;
+    --purple: #A78BFA;
+    --orange: #FB923C;
+    --border: rgba(255,255,255,0.06);
+    --border2: rgba(255,255,255,0.11);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'Nunito',sans-serif; min-height:100vh; overflow-x:hidden; }
+  body::before {
+    content:''; position:fixed; inset:0;
+    background:
+      radial-gradient(ellipse 80% 50% at 20% -10%, rgba(255,107,107,0.07) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 110%, rgba(78,205,196,0.07) 0%, transparent 60%),
+      radial-gradient(1.5px 1.5px at 15% 25%, rgba(255,255,255,0.35) 0%, transparent 100%),
+      radial-gradient(1px 1px at 75% 15%, rgba(255,255,255,0.25) 0%, transparent 100%),
+      radial-gradient(1px 1px at 45% 65%, rgba(255,255,255,0.2) 0%, transparent 100%),
+      radial-gradient(1px 1px at 85% 55%, rgba(255,255,255,0.15) 0%, transparent 100%),
+      radial-gradient(2px 2px at 60% 35%, rgba(255,217,61,0.25) 0%, transparent 100%),
+      radial-gradient(2px 2px at 30% 80%, rgba(78,205,196,0.18) 0%, transparent 100%);
+    pointer-events:none; z-index:0;
+  }
+  .wrap { max-width:920px; margin:0 auto; padding:24px 16px 60px; position:relative; z-index:1; }
+
+  /* HEADER */
+  header { text-align:center; padding:36px 0 28px; animation:fadeDown .6s ease; }
+  .header-icon { font-size:56px; display:block; margin-bottom:10px; filter:drop-shadow(0 0 28px rgba(255,217,61,.55)); animation:float 3s ease-in-out infinite; }
+  header h1 { font-family:'Fredoka One',cursive; font-size:clamp(2rem,6vw,3.4rem); background:linear-gradient(135deg,#FFD93D 0%,#FF9F43 45%,#FF6B6B 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; letter-spacing:1px; }
+  header p { color:var(--muted2); font-size:.95rem; margin-top:8px; font-weight:700; }
+  .db-status { display:flex; align-items:center; justify-content:center; gap:6px; font-size:.75rem; font-weight:700; color:var(--muted); margin-top:10px; }
+  .db-dot { width:7px; height:7px; border-radius:50%; background:var(--muted); transition:background .4s; animation:pulse 1.5s infinite; }
+  .db-dot.ready { background:var(--green); box-shadow:0 0 6px rgba(74,222,128,.5); animation:none; }
+  .db-dot.error { background:var(--Rozh); animation:none; }
+
+  /* MONTH BAR */
+  .month-bar { display:flex; align-items:center; justify-content:center; gap:14px; margin:0 0 28px; }
+  .month-btn { background:var(--card2); border:1px solid var(--border2); color:var(--text); width:38px; height:38px; border-radius:50%; font-size:1.2rem; cursor:pointer; transition:all .2s; display:flex; align-items:center; justify-content:center; }
+  .month-btn:hover { background:var(--card3); border-color:var(--gold); color:var(--gold); transform:scale(1.08); }
+  .month-label { font-family:'Fredoka One',cursive; font-size:1.35rem; color:var(--gold); min-width:175px; text-align:center; }
+
+  /* SCOREBOARD */
+  .scoreboard { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px; animation:fadeUp .5s ease .1s both; }
+  .player-card { border-radius:22px; padding:24px 22px; position:relative; overflow:hidden; transition:transform .25s; }
+  .player-card:hover { transform:translateY(-4px); }
+  .player-card.Rozh  { background:linear-gradient(145deg,rgba(255,107,107,.13),rgba(255,107,107,.04)); border:1.5px solid rgba(255,107,107,.3); }
+  .player-card.Barzan { background:linear-gradient(145deg,rgba(78,205,196,.13),rgba(78,205,196,.04)); border:1.5px solid rgba(78,205,196,.3); }
+  .pc-glow { position:absolute; top:-40px; right:-40px; width:130px; height:130px; border-radius:50%; opacity:.07; }
+  .player-card.Rozh  .pc-glow { background:radial-gradient(circle,var(--Rozh),transparent 70%); }
+  .player-card.Barzan .pc-glow { background:radial-gradient(circle,var(--Barzan),transparent 70%); }
+  .pc-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .player-name { font-family:'Fredoka One',cursive; font-size:1.6rem; }
+  .player-card.Rozh  .player-name { color:var(--Rozh); }
+  .player-card.Barzan .player-name { color:var(--Barzan); }
+  .crown-badge { background:rgba(255,217,61,.15); border:1px solid rgba(255,217,61,.3); color:var(--gold); font-size:.72rem; font-weight:900; padding:3px 8px; border-radius:8px; display:none; }
+  .crown-badge.show { display:inline-block; }
+  .credits-big { font-family:'Fredoka One',cursive; font-size:3.2rem; line-height:1; margin-bottom:2px; }
+  .player-card.Rozh  .credits-big { color:var(--Rozh); }
+  .player-card.Barzan .credits-big { color:var(--Barzan); }
+  .credits-label { color:var(--muted); font-size:.75rem; font-weight:800; letter-spacing:1px; text-transform:uppercase; }
+  .reward-badge { display:inline-flex; align-items:center; gap:5px; padding:5px 13px; border-radius:20px; font-size:.88rem; font-weight:800; margin-top:12px; }
+  .player-card.Rozh  .reward-badge { background:rgba(255,107,107,.15); color:var(--Rozh); }
+  .player-card.Barzan .reward-badge { background:rgba(78,205,196,.15); color:var(--Barzan); }
+  .prog-track { background:rgba(255,255,255,.06); border-radius:10px; height:9px; margin-top:14px; overflow:hidden; }
+  .prog-fill { height:100%; border-radius:10px; transition:width .8s cubic-bezier(.22,1,.36,1); }
+  .player-card.Rozh  .prog-fill { background:linear-gradient(90deg,#FF6B6B,#FF9F43); }
+  .player-card.Barzan .prog-fill { background:linear-gradient(90deg,#4ECDC4,#6BCB77); }
+  .prog-labels { display:flex; justify-content:space-between; font-size:.68rem; color:var(--muted); margin-top:5px; font-weight:800; }
+  .pc-stats { display:flex; gap:10px; margin-top:14px; }
+  .pc-stat { flex:1; background:rgba(255,255,255,.04); border-radius:10px; padding:8px 10px; text-align:center; border:1px solid var(--border); }
+  .pc-stat-val { font-family:'Fredoka One',cursive; font-size:1.1rem; }
+  .pc-stat-lbl { font-size:.65rem; color:var(--muted); font-weight:800; text-transform:uppercase; letter-spacing:.5px; }
+
+  /* BOTM */
+  .botm-banner { background:linear-gradient(135deg,rgba(255,217,61,.1),rgba(255,159,67,.06)); border:1.5px solid rgba(255,217,61,.25); border-radius:18px; padding:16px 22px; display:flex; align-items:center; gap:14px; margin-bottom:26px; animation:fadeUp .5s ease .2s both; }
+  .botm-icon { font-size:2.2rem; flex-shrink:0; }
+  .botm-body { flex:1; min-width:0; }
+  .botm-body strong { font-family:'Fredoka One',cursive; color:var(--gold); font-size:1.05rem; display:block; }
+  .botm-body p { color:var(--muted2); font-size:.82rem; font-weight:600; margin-top:2px; }
+  .botm-winner { font-family:'Fredoka One',cursive; font-size:1.25rem; flex-shrink:0; }
+
+  /* TABS */
+  .tabs { display:flex; gap:8px; margin-bottom:22px; animation:fadeUp .5s ease .28s both; overflow-x:auto; padding-bottom:2px; }
+  .tabs::-webkit-scrollbar { display:none; }
+  .tab { padding:10px 18px; border-radius:13px; border:1.5px solid var(--border); background:var(--card); color:var(--muted2); font-family:'Nunito',sans-serif; font-weight:800; font-size:.88rem; cursor:pointer; transition:all .2s; white-space:nowrap; flex-shrink:0; }
+  .tab:hover { border-color:var(--gold); color:var(--gold); }
+  .tab.active { background:var(--gold); color:#0F1B2D; border-color:var(--gold); }
+
+  /* LOG FORM */
+  .log-form { background:var(--card); border:1px solid var(--border2); border-radius:22px; padding:26px; animation:fadeUp .5s ease .32s both; }
+  .form-title { font-family:'Fredoka One',cursive; font-size:1.35rem; color:var(--gold); margin-bottom:20px; }
+  .form-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; }
+  .field { display:flex; flex-direction:column; gap:6px; }
+  label { font-size:.72rem; font-weight:900; color:var(--muted); letter-spacing:.8px; text-transform:uppercase; }
+  select, input[type="date"] { width:100%; background:var(--card2); border:1.5px solid var(--border2); color:var(--text); padding:11px 14px; border-radius:12px; font-family:'Nunito',sans-serif; font-size:.92rem; font-weight:700; transition:border-color .2s,box-shadow .2s; appearance:none; cursor:pointer; }
+  select:focus, input:focus { outline:none; border-color:var(--gold); box-shadow:0 0 0 3px rgba(255,217,61,.12); }
+  select option { background:#1A2436; }
+
+  /* CREDITS DISPLAY */
+  .credits-display { background:var(--card2); border:1.5px solid rgba(255,217,61,.35); border-radius:12px; padding:11px 14px; display:flex; align-items:center; justify-content:space-between; min-height:46px; }
+  .credits-display .cval { font-family:'Fredoka One',cursive; font-size:1.35rem; color:var(--gold); }
+  .credits-display .lock-chip { font-size:.68rem; color:var(--muted); font-weight:800; background:rgba(255,255,255,.05); padding:2px 8px; border-radius:6px; border:1px solid var(--border2); }
+  .credits-display .empty-hint { color:var(--muted); font-size:.85rem; font-weight:700; }
+
+  /* TOGGLES */
+  .toggle-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .tog-btn { padding:11px; border-radius:12px; border:1.5px solid var(--border2); background:var(--card2); cursor:pointer; font-family:'Nunito',sans-serif; font-weight:800; font-size:.9rem; color:var(--muted2); transition:all .2s; text-align:center; }
+  .tog-btn.sel-Rozh     { background:rgba(255,107,107,.15); border-color:var(--Rozh); color:var(--Rozh); }
+  .tog-btn.sel-Barzan    { background:rgba(78,205,196,.15); border-color:var(--Barzan); color:var(--Barzan); }
+  .tog-btn.sel-pending  { background:rgba(251,146,60,.12); border-color:var(--orange); color:var(--orange); }
+  .tog-btn.sel-approved { background:rgba(74,222,128,.12); border-color:var(--green); color:var(--green); }
+
+  .btn-add { background:linear-gradient(135deg,#FFD93D,#FF9F43); color:#0F1B2D; border:none; padding:14px 28px; border-radius:14px; font-family:'Fredoka One',cursive; font-size:1.1rem; cursor:pointer; transition:all .2s; width:100%; margin-top:6px; box-shadow:0 4px 20px rgba(255,217,61,.2); }
+  .btn-add:hover { transform:translateY(-2px); box-shadow:0 8px 28px rgba(255,217,61,.32); }
+  .btn-add:active { transform:translateY(0); }
+  .btn-add:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+
+  /* HISTORY */
+  .history-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:10px; }
+  .history-title { font-family:'Fredoka One',cursive; font-size:1.25rem; }
+  .filter-row { display:flex; gap:8px; flex-wrap:wrap; }
+  .filter-btn { padding:6px 14px; border-radius:10px; border:1.5px solid var(--border2); background:var(--card); color:var(--muted2); font-weight:800; font-size:.8rem; cursor:pointer; transition:all .2s; }
+  .filter-btn:hover,.filter-btn.active { border-color:var(--gold); color:var(--gold); background:rgba(255,217,61,.07); }
+
+  .log-entry { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px 18px; margin-bottom:8px; display:grid; gap:10px 14px; grid-template-columns:54px 1fr auto auto auto; align-items:center; transition:all .2s; animation:slideIn .25s ease; }
+  .log-entry:hover { border-color:var(--border2); background:var(--card2); }
+  .entry-date { font-size:.75rem; color:var(--muted2); font-weight:800; line-height:1.3; }
+  .entry-task { font-weight:800; font-size:.9rem; word-break:break-word; }
+  .entry-cat  { font-size:.72rem; color:var(--muted); font-weight:700; margin-top:1px; }
+  .entry-person { font-family:'Fredoka One',cursive; font-size:.82rem; padding:4px 11px; border-radius:20px; white-space:nowrap; }
+  .person-Rozh  { background:rgba(255,107,107,.15); color:var(--Rozh); }
+  .person-Barzan { background:rgba(78,205,196,.15); color:var(--Barzan); }
+  .entry-credits { font-family:'Fredoka One',cursive; font-size:1.05rem; color:var(--gold); white-space:nowrap; }
+  .entry-actions { display:flex; gap:6px; align-items:center; }
+  .proof-tag { font-size:.72rem; padding:4px 9px; border-radius:7px; font-weight:800; cursor:pointer; transition:all .2s; white-space:nowrap; border:1px solid transparent; }
+  .proof-tag.pending  { background:rgba(251,146,60,.12); color:var(--orange); border-color:rgba(251,146,60,.25); }
+  .proof-tag.pending:hover  { background:rgba(251,146,60,.22); }
+  .proof-tag.approved { background:rgba(74,222,128,.12); color:var(--green); border-color:rgba(74,222,128,.25); }
+  .proof-tag.approved:hover { background:rgba(74,222,128,.22); }
+  .btn-delete { background:none; border:1px solid var(--border); color:var(--muted); cursor:pointer; font-size:.78rem; padding:4px 8px; border-radius:8px; transition:all .2s; line-height:1; }
+  .btn-delete:hover { color:var(--Rozh); background:rgba(255,107,107,.1); border-color:rgba(255,107,107,.3); }
+
+  /* EMPTY */
+  .empty-state { text-align:center; padding:48px 20px; color:var(--muted); }
+  .empty-state .ei { font-size:3.5rem; display:block; margin-bottom:14px; opacity:.45; }
+  .empty-state p { font-weight:700; font-size:1rem; }
+  .empty-state small { font-size:.82rem; opacity:.7; display:block; margin-top:6px; }
+
+  /* CHORE REF */
+  .chore-category { background:var(--card); border:1px solid var(--border); border-radius:18px; padding:20px 22px; margin-bottom:12px; }
+  .chore-cat-header { display:flex; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+  .chore-cat-header h3 { font-family:'Fredoka One',cursive; font-size:1.1rem; }
+  .freq-badge { font-size:.68rem; font-weight:800; padding:3px 9px; border-radius:8px; background:rgba(167,139,250,.15); color:var(--purple); margin-left:auto; }
+  .cat-total { font-family:'Fredoka One',cursive; font-size:.9rem; color:var(--gold); background:rgba(255,217,61,.1); padding:3px 10px; border-radius:8px; }
+  .chore-item { display:flex; justify-content:space-between; align-items:center; padding:9px 0; border-bottom:1px solid var(--border); gap:12px; }
+  .chore-item:last-child { border-bottom:none; padding-bottom:0; }
+  .chore-item span:first-child { font-size:.9rem; font-weight:700; }
+  .chore-pts { font-family:'Fredoka One',cursive; font-size:1rem; color:var(--gold); }
+
+  /* RULES */
+  .rules-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .rule-card { background:var(--card); border:1px solid var(--border); border-radius:18px; padding:20px; }
+  .rule-card h3 { font-family:'Fredoka One',cursive; margin-bottom:12px; font-size:1.1rem; }
+  .rule-card ul { list-style:none; }
+  .rule-card li { padding:5px 0; font-size:.88rem; color:var(--muted2); font-weight:600; display:flex; gap:8px; align-items:flex-start; }
+  .rule-card li::before { content:'›'; color:var(--gold); flex-shrink:0; font-size:1rem; }
+  .reward-tbl { width:100%; border-collapse:collapse; }
+  .reward-tbl th { text-align:left; padding:8px 12px; color:var(--muted); font-size:.75rem; text-transform:uppercase; letter-spacing:.5px; }
+  .reward-tbl td { padding:11px 12px; border-top:1px solid var(--border); font-weight:700; font-size:.92rem; }
+  .reward-tbl tr:hover td { background:var(--card2); }
+  .reward-tbl .iqdcol { color:var(--gold); font-family:'Fredoka One',cursive; font-size:1rem; }
+
+  /* TOAST */
+  .toast { position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(90px); background:var(--green); color:#0F1B2D; padding:13px 26px; border-radius:14px; font-family:'Fredoka One',cursive; font-size:1.05rem; z-index:1000; transition:transform .35s cubic-bezier(.22,1,.36,1); pointer-events:none; white-space:nowrap; box-shadow:0 8px 32px rgba(0,0,0,.35); }
+  .toast.show { transform:translateX(-50%) translateY(0); }
+
+  /* ANIMATIONS */
+  @keyframes fadeDown { from{opacity:0;transform:translateY(-24px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes fadeUp   { from{opacity:0;transform:translateY(22px)}  to{opacity:1;transform:translateY(0)} }
+  @keyframes slideIn  { from{opacity:0;transform:translateX(-12px)} to{opacity:1;transform:translateX(0)} }
+  @keyframes float    { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+  @keyframes pulse    { 0%,100%{opacity:1} 50%{opacity:.5} }
+
+  @media(max-width:600px){
+    .scoreboard{grid-template-columns:1fr}
+    .form-grid-2{grid-template-columns:1fr}
+    .rules-grid{grid-template-columns:1fr}
+    .log-entry{grid-template-columns:48px 1fr auto auto}
+    .entry-person{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <span class="header-icon">🏆</span>
+    <h1>Family Chore Game</h1>
+    <p>Help mum · Keep the house clean · Earn rewards</p>
+    <div class="db-status">
+      <div class="db-dot" id="dbDot"></div>
+      <span id="dbLabel">Connecting to database…</span>
+    </div>
+  </header>
+
+  <div class="month-bar">
+    <button class="month-btn" onclick="changeMonth(-1)">‹</button>
+    <span class="month-label" id="monthLabel"></span>
+    <button class="month-btn" onclick="changeMonth(1)">›</button>
+  </div>
+
+  <div class="scoreboard" id="scoreboard"></div>
+  <div class="botm-banner" id="botmBanner"></div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('log',this)">➕ Log Chore</button>
+    <button class="tab" onclick="switchTab('history',this)">📅 History</button>
+    <button class="tab" onclick="switchTab('chores',this)">✅ Chore List</button>
+    <button class="tab" onclick="switchTab('rules',this)">⚖️ Rules</button>
+  </div>
+
+  <!-- LOG TAB -->
+  <div id="tab-log">
+    <div class="log-form">
+      <div class="form-title">🎮 Log a Completed Chore</div>
+
+      <div class="form-grid-2">
+        <div class="field">
+          <label>Date</label>
+          <input type="date" id="inp-date">
+        </div>
+        <div class="field">
+          <label>Who did it?</label>
+          <div class="toggle-row">
+            <button class="tog-btn sel-Rozh"  id="btn-Rozh"  onclick="selectPerson('Rozh')">🎮 Rozh</button>
+            <button class="tog-btn"           id="btn-Barzan" onclick="selectPerson('Barzan')">🎮 Barzan</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="field">
+          <label>Category</label>
+          <select id="inp-cat" onchange="updateTaskList()">
+            <option value="">Select category…</option>
+            <option value="daily">📅 Daily Tasks</option>
+            <option value="living">🛋️ Living Room</option>
+            <option value="hall">🚪 Main Hall</option>
+            <option value="guest">🛏️ Guest Room</option>
+            <option value="toilet1">🚽 1st Floor Toilet</option>
+            <option value="floor2">🏠 2nd Floor (4 rooms)</option>
+            <option value="garage">🔧 Garage</option>
+            <option value="bonus">⭐ Bonus</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Task</label>
+          <select id="inp-task" onchange="updateCreditsDisplay()">
+            <option value="">Select task…</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="field">
+          <label>Credits (fixed — auto assigned)</label>
+          <div class="credits-display" id="credits-display">
+            <span class="empty-hint" id="crd-empty">← Pick a task first</span>
+            <span class="cval"       id="crd-val"   style="display:none"></span>
+            <span class="lock-chip"  id="crd-lock"  style="display:none">🔒 FIXED</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>Proof Status</label>
+          <div class="toggle-row">
+            <button class="tog-btn sel-pending"  id="proof-pending"  onclick="selectProof('pending')">⏳ Pending</button>
+            <button class="tog-btn"              id="proof-approved" onclick="selectProof('approved')">✅ Approved</button>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-add" id="btn-add" onclick="addEntry()">🚀 Log Chore &amp; Earn Credits!</button>
+    </div>
+  </div>
+
+  <!-- HISTORY TAB -->
+  <div id="tab-history" style="display:none">
+    <div class="history-header">
+      <span class="history-title" id="historyTitle">This Month</span>
+      <div class="filter-row">
+        <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+        <button class="filter-btn" onclick="setFilter('Rozh',this)">Rozh</button>
+        <button class="filter-btn" onclick="setFilter('Barzan',this)">Barzan</button>
+        <button class="filter-btn" onclick="setFilter('pending',this)">⏳ Pending</button>
+        <button class="filter-btn" onclick="setFilter('approved',this)">✅ Approved</button>
+      </div>
+    </div>
+    <div id="logList"></div>
+  </div>
+
+  <!-- CHORES TAB -->
+  <div id="tab-chores" style="display:none">
+    <div id="choreRef"></div>
+  </div>
+
+  <!-- RULES TAB -->
+  <div id="tab-rules" style="display:none">
+    <div class="rules-grid">
+      <div class="rule-card">
+        <h3>🎮 How It Works</h3>
+        <ul>
+          <li>Each chore has fixed credits — you cannot change them</li>
+          <li>Prove it with before &amp; after photos or video</li>
+          <li>Task is logged and stays Pending until mum approves</li>
+          <li>Credits are totalled at end of the month</li>
+          <li>Money is given based on total approved credits only</li>
+        </ul>
+      </div>
+      <div class="rule-card">
+        <h3>⚖️ Fairness Rules</h3>
+        <ul>
+          <li>No credit without proof</li>
+          <li>Bad cleaning = redo the task, no credits</li>
+          <li>Tasks rotate so nobody always does the same</li>
+          <li>Helping mum voluntarily = bonus credits</li>
+          <li>Tap the proof tag in History to approve entries</li>
+        </ul>
+      </div>
+      <div class="rule-card" style="grid-column:1/-1">
+        <h3>💰 Reward Table</h3>
+        <table class="reward-tbl">
+          <thead><tr><th>Credits</th><th>Reward (IQD)</th><th>Progress</th></tr></thead>
+          <tbody>
+            <tr><td>100 credits</td><td class="iqdcol">25,000 IQD</td><td><div class="prog-track" style="width:110px"><div class="prog-fill" style="width:25%;background:linear-gradient(90deg,#4ADE80,#4ECDC4)"></div></div></td></tr>
+            <tr><td>200 credits</td><td class="iqdcol">50,000 IQD</td><td><div class="prog-track" style="width:110px"><div class="prog-fill" style="width:50%;background:linear-gradient(90deg,#FFD93D,#FF9F43)"></div></div></td></tr>
+            <tr><td>300 credits</td><td class="iqdcol">75,000 IQD</td><td><div class="prog-track" style="width:110px"><div class="prog-fill" style="width:75%;background:linear-gradient(90deg,#FF9F43,#FF6B6B)"></div></div></td></tr>
+            <tr><td>400+ credits</td><td class="iqdcol">100,000 IQD 🏆</td><td><div class="prog-track" style="width:110px"><div class="prog-fill" style="width:100%;background:linear-gradient(90deg,#FFD93D,#FF6B6B)"></div></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="rule-card" style="grid-column:1/-1;background:linear-gradient(135deg,rgba(255,217,61,.07),rgba(255,159,67,.03));border-color:rgba(255,217,61,.2)">
+        <h3>👑 Brother of the Month</h3>
+        <ul>
+          <li>Whoever earns the most approved credits wins the title</li>
+          <li>Winner gets an EXTRA 20,000 IQD bonus on top of their reward</li>
+          <li>Makes it competitive — only approved credits count!</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ─── CHORE DATA ─────────────────────────────────────── */
+const CHORES = {
+  daily:   {label:'📅 Daily Tasks',       freq:'Every day',   color:'#A78BFA',
+    tasks:[{name:'Make bed every morning',credits:2},{name:'Keep room clean',credits:3},{name:'Organize wardrobe',credits:3}]},
+  living:  {label:'🛋️ Living Room',        freq:'2× per week', color:'#FF9F43',
+    tasks:[{name:'Vacuum living room',credits:8},{name:'Clean tables & TV',credits:5}]},
+  hall:    {label:'🚪 Main Hall',           freq:'1× per week', color:'#4ECDC4',
+    tasks:[{name:'Vacuum hall',credits:8},{name:'Organize / arrange area',credits:7}]},
+  guest:   {label:'🛏️ Guest Room',          freq:'1× per week', color:'#6BCB77',
+    tasks:[{name:'Clean tables',credits:5},{name:'Vacuum floor',credits:7}]},
+  toilet1: {label:'🚽 1st Floor Toilet',    freq:'2× per week', color:'#FF6B6B',
+    tasks:[{name:'Clean toilet',credits:10},{name:'Wipe sink & mirror',credits:5}]},
+  floor2:  {label:'🏠 2nd Floor (4 rooms)', freq:'1× per week', color:'#A78BFA',
+    tasks:[{name:'Clean toilets',credits:10},{name:'Clean bathroom mirrors',credits:5},{name:'Wipe bathroom surfaces',credits:5},{name:'Vacuum hallway',credits:8}]},
+  garage:  {label:'🔧 Garage',              freq:'1× per week', color:'#FB923C',
+    tasks:[{name:'Clean garage',credits:10},{name:'Arrange tools/items',credits:8},{name:'Wash garage floor',credits:10}]},
+  bonus:   {label:'⭐ Bonus Credits',        freq:'Any time',    color:'#FFD93D',
+    tasks:[{name:'Help mum cooking',credits:5},{name:'Cleaning kitchen',credits:8},{name:'Deep cleaning any area',credits:10},{name:'Taking trash out',credits:3}]},
+};
+
+/* ─── INDEXEDDB ──────────────────────────────────────── */
+const DB_NAME='choreGameDB', DB_VER=1, STORE='entries';
+let db=null;
+
+function openDB(){
+  return new Promise((res,rej)=>{
+    const r=indexedDB.open(DB_NAME,DB_VER);
+    r.onupgradeneeded=e=>{
+      const d=e.target.result;
+      if(!d.objectStoreNames.contains(STORE)){
+        const s=d.createObjectStore(STORE,{keyPath:'id'});
+        s.createIndex('date','date',{unique:false});
+        s.createIndex('person','person',{unique:false});
+      }
+    };
+    r.onsuccess=e=>{db=e.target.result;res(db);};
+    r.onerror=e=>rej(e.target.error);
+  });
+}
+function dbGetAll(){
+  return new Promise((res,rej)=>{
+    const r=db.transaction(STORE,'readonly').objectStore(STORE).getAll();
+    r.onsuccess=()=>res(r.result); r.onerror=e=>rej(e.target.error);
+  });
+}
+function dbPut(entry){
+  return new Promise((res,rej)=>{
+    const r=db.transaction(STORE,'readwrite').objectStore(STORE).put(entry);
+    r.onsuccess=()=>res(); r.onerror=e=>rej(e.target.error);
+  });
+}
+function dbDelete(id){
+  return new Promise((res,rej)=>{
+    const r=db.transaction(STORE,'readwrite').objectStore(STORE).delete(id);
+    r.onsuccess=()=>res(); r.onerror=e=>rej(e.target.error);
+  });
+}
+
+/* ─── STATE ──────────────────────────────────────────── */
+let entries=[], currentMonth=new Date().getMonth(), currentYear=new Date().getFullYear();
+let selPerson='Rozh', selProof='pending', histFilter='all';
+const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+/* ─── HELPERS ────────────────────────────────────────── */
+const getKey=()=>`${currentYear}-${String(currentMonth+1).padStart(2,'0')}`;
+const getME=()=>entries.filter(e=>e.date.startsWith(getKey()));
+const approved=(p)=>getME().filter(e=>e.person===p&&e.proof==='approved').reduce((s,e)=>s+e.credits,0);
+const pending=(p)=>getME().filter(e=>e.person===p&&e.proof==='pending').reduce((s,e)=>s+e.credits,0);
+const reward=(c)=>c>=400?100000:c>=300?75000:c>=200?50000:c>=100?25000:Math.round(c/100*25000);
+const fmt=(n)=>n.toLocaleString();
+
+/* ─── SCOREBOARD ─────────────────────────────────────── */
+function updateScoreboard(){
+  const rA=approved('Rozh'), rP=pending('Rozh'), rT=getME().filter(e=>e.person==='Rozh').length;
+  const bA=approved('Barzan'),bP=pending('Barzan'),bT=getME().filter(e=>e.person==='Barzan').length;
+  const mk=(p,cls,a,pend,tot)=>`
+    <div class="player-card ${cls}">
+      <div class="pc-glow"></div>
+      <div class="pc-header">
+        <div class="player-name">${p}</div>
+        <span class="crown-badge ${(cls==='Rozh'?rA>bA:bA>rA)?'show':''}">👑 LEADING</span>
+      </div>
+      <div class="credits-big">${a}</div>
+      <div class="credits-label">Approved Credits</div>
+      <div class="reward-badge">💰 ${fmt(reward(a))} IQD</div>
+      <div class="prog-track"><div class="prog-fill" style="width:${Math.min(100,a/400*100)}%"></div></div>
+      <div class="prog-labels"><span>0</span><span>100</span><span>200</span><span>300</span><span>400+</span></div>
+      <div class="pc-stats">
+        <div class="pc-stat"><div class="pc-stat-val" style="color:var(--orange)">${pend}</div><div class="pc-stat-lbl">Pending</div></div>
+        <div class="pc-stat"><div class="pc-stat-val" style="color:var(--muted2)">${tot}</div><div class="pc-stat-lbl">Tasks</div></div>
+        <div class="pc-stat"><div class="pc-stat-val" style="color:var(--green)">${a+pend}</div><div class="pc-stat-lbl">All Pts</div></div>
+      </div>
+    </div>`;
+  document.getElementById('scoreboard').innerHTML = mk('Rozh','Rozh',rA,rP,rT) + mk('Barzan','Barzan',bA,bP,bT);
+
+  let html;
+  if(!rA&&!bA) html=`<span class="botm-icon">🏆</span><div class="botm-body"><strong>Brother of the Month</strong><p>Start logging chores to compete! Winner gets +20,000 IQD bonus 🎁</p></div>`;
+  else if(rA===bA) html=`<span class="botm-icon">🤝</span><div class="botm-body"><strong>It's a tie!</strong><p>Both at ${rA} approved credits — one chore could change everything!</p></div>`;
+  else{
+    const leader=rA>bA?'Rozh':'Barzan', diff=Math.abs(rA-bA), col=leader==='Rozh'?'var(--Rozh)':'var(--Barzan)';
+    html=`<span class="botm-icon">👑</span><div class="botm-body"><strong>Brother of the Month Leader</strong><p>Leading by <strong style="color:var(--gold)">${diff} credits</strong>!</p></div><span class="botm-winner" style="color:${col}">${leader}</span>`;
+  }
+  document.getElementById('botmBanner').innerHTML=html;
+}
+
+/* ─── LOG LIST ───────────────────────────────────────── */
+function updateLog(){
+  let me=getME().slice().reverse();
+  if(histFilter==='Rozh')    me=me.filter(e=>e.person==='Rozh');
+  if(histFilter==='Barzan')   me=me.filter(e=>e.person==='Barzan');
+  if(histFilter==='pending') me=me.filter(e=>e.proof==='pending');
+  if(histFilter==='approved')me=me.filter(e=>e.proof==='approved');
+  const all=getME();
+  document.getElementById('historyTitle').textContent=`${MONTHS[currentMonth]} ${currentYear} — ${all.length} chore${all.length!==1?'s':''} logged`;
+  const list=document.getElementById('logList');
+  if(!me.length){
+    list.innerHTML=`<div class="empty-state"><span class="ei">📋</span><p>No chores logged yet this month.</p><small>Go to "Log Chore" to start earning!</small></div>`;
+    return;
+  }
+  list.innerHTML=me.map(e=>{
+    const ck=Object.keys(CHORES).find(k=>CHORES[k].tasks.some(t=>t.name===e.task))||'';
+    return `<div class="log-entry" id="entry-${e.id}">
+      <div class="entry-date">${e.date.slice(5).replace('-','/')}</div>
+      <div><div class="entry-task">${e.task}</div>${ck?`<div class="entry-cat">${CHORES[ck].label}</div>`:''}</div>
+      <span class="entry-person ${e.person==='Rozh'?'person-Rozh':'person-Barzan'}">${e.person}</span>
+      <span class="entry-credits">+${e.credits}⭐</span>
+      <div class="entry-actions">
+        <span class="proof-tag ${e.proof}" onclick="toggleProof('${e.id}')" title="Tap to toggle">${e.proof==='approved'?'✅ Approved':'⏳ Pending'}</span>
+        <button class="btn-delete" onclick="deleteEntry('${e.id}')">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ─── FORM ───────────────────────────────────────────── */
+function selectPerson(p){
+  selPerson=p;
+  document.getElementById('btn-Rozh').className ='tog-btn'+(p==='Rozh' ?' sel-Rozh':'');
+  document.getElementById('btn-Barzan').className='tog-btn'+(p==='Barzan'?' sel-Barzan':'');
+}
+function selectProof(p){
+  selProof=p;
+  document.getElementById('proof-pending').className ='tog-btn'+(p==='pending' ?' sel-pending':'');
+  document.getElementById('proof-approved').className='tog-btn'+(p==='approved'?' sel-approved':'');
+}
+function updateTaskList(){
+  const cat=document.getElementById('inp-cat').value;
+  const sel=document.getElementById('inp-task');
+  sel.innerHTML='<option value="">Select task…</option>';
+  if(cat&&CHORES[cat]) CHORES[cat].tasks.forEach(t=>{ sel.innerHTML+=`<option value="${t.name}" data-credits="${t.credits}">${t.name}</option>`; });
+  updateCreditsDisplay();
+}
+function updateCreditsDisplay(){
+  const sel=document.getElementById('inp-task');
+  const opt=sel.options[sel.selectedIndex];
+  const empty=document.getElementById('crd-empty'), val=document.getElementById('crd-val'), lock=document.getElementById('crd-lock');
+  if(opt&&opt.dataset.credits){
+    empty.style.display='none'; val.style.display='block'; lock.style.display='block';
+    val.textContent=`+${opt.dataset.credits} pts`;
+  } else {
+    empty.style.display='block'; val.style.display='none'; lock.style.display='none';
+  }
+}
+function setFilter(f,el){
+  histFilter=f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active'); updateLog();
+}
+
+/* ─── CRUD ───────────────────────────────────────────── */
+async function addEntry(){
+  const date=document.getElementById('inp-date').value;
+  const task=document.getElementById('inp-task').value;
+  const opt=document.getElementById('inp-task').options[document.getElementById('inp-task').selectedIndex];
+  const credits=opt&&opt.dataset.credits?parseInt(opt.dataset.credits):0;
+  if(!date){showToast('⚠️ Pick a date!','#FF6B6B');return;}
+  if(!task){showToast('⚠️ Pick a task!','#FF6B6B');return;}
+  const btn=document.getElementById('btn-add');
+  btn.disabled=true; btn.textContent='Saving…';
+  const entry={id:Date.now().toString(),date,task,credits,person:selPerson,proof:selProof};
+  try{
+    await dbPut(entry); entries.push(entry); updateAll();
+    document.getElementById('inp-task').value=''; document.getElementById('inp-cat').value='';
+    updateCreditsDisplay(); selectProof('pending');
+    showToast(`🎉 +${credits} pts for ${selPerson}!`);
+    switchTab('history',document.querySelectorAll('.tab')[1]);
+  }catch(err){ showToast('❌ Save failed','#FF6B6B'); console.error(err); }
+  btn.disabled=false; btn.textContent='🚀 Log Chore & Earn Credits!';
+}
+async function deleteEntry(id){
+  try{ await dbDelete(id); entries=entries.filter(e=>e.id!==id); updateAll(); showToast('Entry removed','#FB923C'); }
+  catch(err){ showToast('❌ Delete failed','#FF6B6B'); }
+}
+async function toggleProof(id){
+  const e=entries.find(x=>x.id===id); if(!e) return;
+  e.proof=e.proof==='approved'?'pending':'approved';
+  try{
+    await dbPut(e); updateAll();
+    showToast(e.proof==='approved'?`✅ Approved! +${e.credits} credits counted`:'⏳ Moved back to pending', e.proof==='approved'?'var(--green)':'var(--orange)');
+  }catch(err){ showToast('❌ Update failed','#FF6B6B'); }
+}
+
+/* ─── CHORE REF ──────────────────────────────────────── */
+function buildChoreRef(){
+  document.getElementById('choreRef').innerHTML=Object.entries(CHORES).map(([k,cat])=>{
+    const total=cat.tasks.reduce((s,t)=>s+t.credits,0);
+    return `<div class="chore-category">
+      <div class="chore-cat-header"><h3 style="color:${cat.color}">${cat.label}</h3><span class="freq-badge">${cat.freq}</span><span class="cat-total">Max ${total} pts</span></div>
+      ${cat.tasks.map(t=>`<div class="chore-item"><span>${t.name}</span><span class="chore-pts">+${t.credits}</span></div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+/* ─── NAVIGATION ─────────────────────────────────────── */
+function changeMonth(dir){
+  currentMonth+=dir;
+  if(currentMonth>11){currentMonth=0;currentYear++;}
+  if(currentMonth<0){currentMonth=11;currentYear--;}
+  histFilter='all';
+  document.querySelectorAll('.filter-btn').forEach((b,i)=>b.classList.toggle('active',i===0));
+  updateAll();
+}
+function switchTab(name,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); el.classList.add('active');
+  ['log','history','chores','rules'].forEach(t=>{ document.getElementById(`tab-${t}`).style.display=t===name?'block':'none'; });
+}
+
+/* ─── TOAST ──────────────────────────────────────────── */
+function showToast(msg,color='var(--green)'){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.style.background=color; t.classList.add('show');
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+/* ─── UPDATE ALL ─────────────────────────────────────── */
+function updateAll(){
+  document.getElementById('monthLabel').textContent=`${MONTHS[currentMonth]} ${currentYear}`;
+  updateScoreboard(); updateLog();
+}
+
+/* ─── INIT ───────────────────────────────────────────── */
+async function init(){
+  document.getElementById('inp-date').value=new Date().toISOString().split('T')[0];
+  buildChoreRef();
+  const dot=document.getElementById('dbDot'), lbl=document.getElementById('dbLabel');
+  try{
+    await openDB();
+    entries=await dbGetAll();
+    dot.classList.add('ready');
+    lbl.textContent=`IndexedDB ready — ${entries.length} entr${entries.length!==1?'ies':'y'} stored`;
+    updateAll();
+  }catch(err){
+    console.warn('IndexedDB unavailable, using localStorage fallback:',err);
+    dot.classList.add('error'); lbl.textContent='Using localStorage (fallback mode)';
+    // Redefine DB operations to use localStorage
+    entries=JSON.parse(localStorage.getItem('choreEntries')||'[]');
+    window.dbPut=async e=>{
+      const i=entries.findIndex(x=>x.id===e.id);
+      i>=0?entries[i]=e:entries.push(e);
+      localStorage.setItem('choreEntries',JSON.stringify(entries));
+    };
+    window.dbDelete=async id=>{
+      entries=entries.filter(x=>x.id!==id);
+      localStorage.setItem('choreEntries',JSON.stringify(entries));
+    };
+    updateAll();
+  }
+}
+init();
+</script>
+</body>
+</html>
