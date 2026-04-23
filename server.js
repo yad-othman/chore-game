@@ -3,6 +3,7 @@
 require('dotenv').config();
 
 const path = require('path');
+const fs = require('fs');
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const bcrypt = require('bcryptjs');
@@ -17,14 +18,28 @@ const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'changeme';
 const DATABASE_URL = process.env.DATABASE_URL;
 const NODE_ENV = process.env.NODE_ENV || 'development';
+const LOG_DIR = process.env.LOG_DIR || '/tmp/chore-game-logs';
 
 if (!DATABASE_URL) {
   throw new Error('DATABASE_URL is required.');
 }
 
+fs.mkdirSync(LOG_DIR, { recursive: true });
+const restLogPath = path.join(LOG_DIR, 'rest.log');
+const workerLogPath = path.join(LOG_DIR, 'worker.log');
+
+function writeLine(filePath, line) {
+  fs.appendFileSync(filePath, `${new Date().toISOString()} ${line}\n`);
+}
+
+function logWorker(line) {
+  writeLine(workerLogPath, line);
+}
+
 if (JWT_SECRET === 'replace-me-in-production') {
   // eslint-disable-next-line no-console
   console.warn('WARNING: JWT_SECRET is using default value. Set JWT_SECRET in production.');
+  logWorker('WARNING JWT_SECRET uses default value');
 }
 
 const pool = new Pool({
@@ -37,6 +52,14 @@ const app = express();
 app.use(express.json());
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const durationMs = Date.now() - start;
+    writeLine(restLogPath, `${req.ip} "${req.method} ${req.originalUrl}" ${res.statusCode} ${durationMs}ms`);
+  });
+  next();
+});
 
 const asyncHandler = (fn) => (req, res, next) => {
   Promise.resolve(fn(req, res, next)).catch(next);
@@ -223,6 +246,7 @@ app.get('*', (_req, res) => {
 app.use((err, _req, res, _next) => {
   // eslint-disable-next-line no-console
   console.error(err);
+  logWorker(`ERROR ${err.stack || err.message || err}`);
   res.status(500).json({ error: 'Internal server error' });
 });
 
@@ -232,11 +256,21 @@ async function main() {
   app.listen(PORT, () => {
     // eslint-disable-next-line no-console
     console.log(`chore-game listening on :${PORT}`);
+    logWorker(`INFO chore-game listening on :${PORT}`);
   });
 }
 
 main().catch((error) => {
   // eslint-disable-next-line no-console
   console.error('Failed to start server:', error);
+  logWorker(`FATAL failed to start server: ${error.stack || error.message || error}`);
   process.exit(1);
+});
+
+process.on('unhandledRejection', (reason) => {
+  logWorker(`UNHANDLED_REJECTION ${reason && reason.stack ? reason.stack : reason}`);
+});
+
+process.on('uncaughtException', (error) => {
+  logWorker(`UNCAUGHT_EXCEPTION ${error.stack || error.message || error}`);
 });
