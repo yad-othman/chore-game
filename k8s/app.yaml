@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: chore-game
-          image: ghcr.io/yothman/chore-game:1.0.0
+          image: ghcr.io/yad-othman/chore-game:1.0.0
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000
