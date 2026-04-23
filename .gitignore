@@ -1,0 +1,6 @@
+node_modules/
+.env
+.env.*
+!.env.example
+k8s/secret.yaml
+.DS_Store
