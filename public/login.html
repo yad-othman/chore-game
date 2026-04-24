@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login · Family Chore Game</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #FFD93D;
+    --bg: #080E1A;
+    --card: #111827;
+    --card2: #1A2436;
+    --text: #EFF6FF;
+    --muted: #94A3B8;
+    --border: rgba(255,255,255,0.1);
+    --green: #4ADE80;
+    --danger: #FF6B6B;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    min-height:100vh;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Nunito',sans-serif;
+    display:grid;
+    place-items:center;
+    padding:20px;
+  }
+  body::before {
+    content:'';
+    position:fixed;
+    inset:0;
+    background:
+      radial-gradient(ellipse 75% 50% at 20% -10%, rgba(255,107,107,0.09) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 45% at 90% 110%, rgba(78,205,196,0.08) 0%, transparent 60%);
+    pointer-events:none;
+  }
+  .card {
+    width:min(430px,100%);
+    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0)) ,var(--card);
+    border:1px solid var(--border);
+    border-radius:24px;
+    padding:30px 24px;
+    position:relative;
+    z-index:1;
+  }
+  .badge {
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:6px 12px;
+    border-radius:999px;
+    border:1px solid rgba(255,217,61,.35);
+    background:rgba(255,217,61,.1);
+    color:var(--gold);
+    font-weight:800;
+    font-size:.78rem;
+    margin-bottom:14px;
+  }
+  h1 {
+    font-family:'Fredoka One',cursive;
+    font-size:2rem;
+    line-height:1.1;
+    margin-bottom:8px;
+    background:linear-gradient(135deg,#FFD93D 0%,#FF9F43 45%,#FF6B6B 100%);
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+  }
+  .sub { color:var(--muted); font-weight:700; margin-bottom:22px; }
+  .field { display:grid; gap:7px; margin-bottom:12px; }
+  label { font-size:.75rem; text-transform:uppercase; letter-spacing:.8px; color:var(--muted); font-weight:900; }
+  input {
+    width:100%;
+    border:1.5px solid var(--border);
+    border-radius:12px;
+    background:var(--card2);
+    color:var(--text);
+    padding:12px 14px;
+    font-size:.95rem;
+    font-weight:700;
+  }
+  input:focus {
+    outline:none;
+    border-color:var(--gold);
+    box-shadow:0 0 0 3px rgba(255,217,61,.12);
+  }
+  .btn {
+    width:100%;
+    border:none;
+    border-radius:14px;
+    padding:13px 16px;
+    margin-top:8px;
+    font-family:'Fredoka One',cursive;
+    font-size:1rem;
+    background:linear-gradient(135deg,#FFD93D,#FF9F43);
+    color:#0F1B2D;
+    cursor:pointer;
+  }
+  .btn:disabled { opacity:.6; cursor:not-allowed; }
+  .status {
+    margin-top:12px;
+    min-height:22px;
+    font-size:.86rem;
+    font-weight:800;
+  }
+  .status.ok { color:var(--green); }
+  .status.err { color:var(--danger); }
+</style>
+</head>
+<body>
+  <main class="card">
+    <div class="badge">🏠 Family Chore Game</div>
+    <h1>Welcome Back</h1>
+    <p class="sub">Sign in to access the chore dashboard.</p>
+
+    <div class="field">
+      <label for="username">Username</label>
+      <input id="username" autocomplete="username" type="text" placeholder="Enter username">
+    </div>
+    <div class="field">
+      <label for="password">Password</label>
+      <input id="password" autocomplete="current-password" type="password" placeholder="Enter password">
+    </div>
+
+    <button id="loginBtn" class="btn">Log In</button>
+    <div id="status" class="status"></div>
+  </main>
+
+<script>
+async function api(path, options = {}) {
+  const response = await fetch(path, {
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+    ...options
+  });
+
+  if (response.status === 204) return null;
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const err = new Error(data.error || 'Request failed');
+    err.status = response.status;
+    throw err;
+  }
+
+  return data;
+}
+
+function setStatus(text, kind) {
+  const el = document.getElementById('status');
+  el.textContent = text;
+  el.className = `status ${kind || ''}`;
+}
+
+async function tryExistingSession() {
+  try {
+    await api('/api/auth/me');
+    window.location.replace('/app');
+  } catch {}
+}
+
+async function login() {
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value;
+  const btn = document.getElementById('loginBtn');
+
+  if (!username || !password) {
+    setStatus('Enter username and password.', 'err');
+    return;
+  }
+
+  btn.disabled = true;
+  setStatus('Signing in...', '');
+  try {
+    await api('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ username, password })
+    });
+    setStatus('Login successful. Redirecting...', 'ok');
+    window.location.replace('/app');
+  } catch {
+    setStatus('Authentication failed. Check credentials.', 'err');
+    btn.disabled = false;
+  }
+}
+
+document.getElementById('loginBtn').addEventListener('click', login);
+document.getElementById('password').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') login();
+});
+
+document.getElementById('username').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') login();
+});
+
+tryExistingSession();
+</script>
+</body>
+</html>

@@ -51,7 +51,6 @@ const app = express();
 
 app.use(express.json());
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
 app.use((req, res, next) => {
   const start = Date.now();
   res.on('finish', () => {
@@ -77,6 +76,20 @@ function authMiddleware(req, res, next) {
     return next();
   } catch (error) {
     return res.status(401).json({ error: 'Unauthorized' });
+  }
+}
+
+function pageAuthMiddleware(req, res, next) {
+  const token = req.cookies.auth_token;
+  if (!token) {
+    return res.redirect('/');
+  }
+
+  try {
+    jwt.verify(token, JWT_SECRET);
+    return next();
+  } catch (error) {
+    return res.redirect('/');
   }
 }
 
@@ -239,8 +252,20 @@ app.delete('/api/entries/:id', authMiddleware, asyncHandler(async (req, res) => 
   res.status(204).end();
 }));
 
-app.get('*', (_req, res) => {
+app.get('/', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+app.get('/login', (_req, res) => {
+  res.redirect('/');
+});
+
+app.get('/app', pageAuthMiddleware, (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.get('*', (_req, res) => {
+  res.redirect('/');
 });
 
 app.use((err, _req, res, _next) => {

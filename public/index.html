@@ -49,12 +49,8 @@
   .db-dot { width:7px; height:7px; border-radius:50%; background:var(--muted); transition:background .4s; animation:pulse 1.5s infinite; }
   .db-dot.ready { background:var(--green); box-shadow:0 0 6px rgba(74,222,128,.5); animation:none; }
   .db-dot.error { background:var(--Rozh); animation:none; }
-  .auth-panel { margin-top:12px; display:flex; justify-content:center; }
-  .auth-login,.auth-session { display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:center; }
-  .auth-login input { background:var(--card2); border:1px solid var(--border2); color:var(--text); border-radius:10px; padding:9px 11px; font-weight:700; min-width:150px; }
+  .session-actions { margin-top:12px; display:flex; justify-content:center; }
   .auth-btn { border:1px solid var(--border2); border-radius:10px; padding:9px 13px; cursor:pointer; font-weight:800; background:var(--card2); color:var(--text); }
-  .auth-btn.primary { background:linear-gradient(135deg,#FFD93D,#FF9F43); border:none; color:#0F1B2D; }
-  .auth-user { color:var(--muted2); font-weight:800; font-size:.85rem; }
 
   /* MONTH BAR */
   .month-bar { display:flex; align-items:center; justify-content:center; gap:14px; margin:0 0 28px; }
@@ -210,7 +206,6 @@
     .rules-grid{grid-template-columns:1fr}
     .log-entry{grid-template-columns:48px 1fr auto auto}
     .entry-person{display:none}
-    .auth-login input{width:100%}
   }
 </style>
 </head>
@@ -223,18 +218,10 @@
     <p>Help mum · Keep the house clean · Earn rewards</p>
     <div class="db-status">
       <div class="db-dot" id="dbDot"></div>
-      <span id="dbLabel">Checking server session…</span>
+      <span id="dbLabel">Loading your dashboard…</span>
     </div>
-    <div class="auth-panel">
-      <div class="auth-login" id="authLogin">
-        <input id="loginUser" type="text" placeholder="Username" autocomplete="username">
-        <input id="loginPass" type="password" placeholder="Password" autocomplete="current-password">
-        <button class="auth-btn primary" onclick="login()">Log In</button>
-      </div>
-      <div class="auth-session" id="authSession" style="display:none">
-        <span class="auth-user" id="authUserLabel"></span>
-        <button class="auth-btn" onclick="logout()">Log Out</button>
-      </div>
+    <div class="session-actions">
+      <button class="auth-btn" onclick="logout()">Log Out</button>
     </div>
   </header>
 
@@ -432,12 +419,6 @@ function setStatus(kind, text){
   lbl.textContent = text;
 }
 
-function updateAuthUI(){
-  document.getElementById('authLogin').style.display = authUser ? 'none' : 'flex';
-  document.getElementById('authSession').style.display = authUser ? 'flex' : 'none';
-  document.getElementById('authUserLabel').textContent = authUser ? `Signed in as ${authUser}` : '';
-}
-
 async function api(path, options = {}){
   const response = await fetch(path, {
     credentials: 'include',
@@ -463,7 +444,7 @@ async function fetchEntries(){
 
 function requireAuthAction(){
   if(!authUser){
-    showToast('🔐 Please log in first', '#FF6B6B');
+    window.location.replace('/');
     return false;
   }
   return true;
@@ -599,10 +580,7 @@ async function addEntry(){
     setStatus('ready', `Connected to server DB — ${entries.length} entr${entries.length!==1?'ies':'y'} loaded`);
   } catch (err){
     if(err.status===401){
-      authUser=null;
-      updateAuthUI();
-      setStatus('error','Session expired. Please log in again.');
-      showToast('🔐 Session expired', '#FF6B6B');
+      window.location.replace('/');
     } else {
       showToast('❌ Save failed','#FF6B6B');
     }
@@ -620,7 +598,11 @@ async function deleteEntry(id){
     setStatus('ready', `Connected to server DB — ${entries.length} entr${entries.length!==1?'ies':'y'} loaded`);
     showToast('Entry removed','#FB923C');
   } catch (err){
-    showToast(err.status===401?'🔐 Session expired':'❌ Delete failed','#FF6B6B');
+    if (err.status===401) {
+      window.location.replace('/');
+      return;
+    }
+    showToast('❌ Delete failed','#FF6B6B');
   }
 }
 
@@ -639,7 +621,11 @@ async function toggleProof(id){
     updateAll();
     showToast(updated.proof==='approved'?`✅ Approved! +${updated.credits} credits counted`:'⏳ Moved back to pending', updated.proof==='approved'?'var(--green)':'var(--orange)');
   }catch (err){
-    showToast(err.status===401?'🔐 Session expired':'❌ Update failed','#FF6B6B');
+    if (err.status===401) {
+      window.location.replace('/');
+      return;
+    }
+    showToast('❌ Update failed','#FF6B6B');
   }
 }
 
@@ -683,54 +669,27 @@ function updateAll(){
   updateLog();
 }
 
-async function login(){
-  const username = document.getElementById('loginUser').value.trim();
-  const password = document.getElementById('loginPass').value;
-  if(!username || !password){
-    showToast('⚠️ Enter username and password','#FF6B6B');
-    return;
-  }
-  try{
-    const me = await api('/api/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ username, password })
-    });
-    authUser = me.username;
-    updateAuthUI();
-    await fetchEntries();
-    updateAll();
-    setStatus('ready', `Connected to server DB — ${entries.length} entr${entries.length!==1?'ies':'y'} loaded`);
-    document.getElementById('loginPass').value = '';
-    showToast('✅ Logged in');
-  }catch{
-    showToast('❌ Invalid login','#FF6B6B');
-    setStatus('error','Authentication failed.');
-  }
-}
-
 async function logout(){
   try { await api('/api/auth/logout', { method: 'POST' }); } catch {}
-  authUser = null;
-  entries = [];
-  updateAuthUI();
-  updateAll();
-  setStatus('error','Signed out. Log in to load chores.');
+  window.location.replace('/');
 }
 
 async function init(){
   document.getElementById('inp-date').value=new Date().toISOString().split('T')[0];
   buildChoreRef();
   updateAll();
-  updateAuthUI();
   try{
     const me = await api('/api/auth/me');
     authUser = me.username;
-    updateAuthUI();
     await fetchEntries();
     updateAll();
-    setStatus('ready', `Connected to server DB — ${entries.length} entr${entries.length!==1?'ies':'y'} loaded`);
+    setStatus('ready', `Welcome ${authUser} · ${entries.length} entr${entries.length!==1?'ies':'y'} loaded`);
   }catch (err){
-    setStatus(err.status===401?'error':'error', err.status===401 ? 'Not signed in. Log in to access chores.' : 'Server unavailable.');
+    if (err.status === 401) {
+      window.location.replace('/');
+      return;
+    }
+    setStatus('error', 'Server unavailable.');
   }
 }
 
